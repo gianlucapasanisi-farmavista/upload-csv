@@ -6,8 +6,8 @@
 
   <style>
     :root {
-      --primary-color: #005ea8;
-      --secondary-color: #e6f0fa;
+      --primary-color: #005ea8;     /* COLORE AZIENDALE */
+      --secondary-color: #e6f0fa;   /* SFONDO */
     }
 
     body {
@@ -43,10 +43,9 @@
       color: #555;
     }
 
-    input {
-      margin: 12px 0;
+    input[type="file"] {
+      margin: 20px 0;
       width: 100%;
-      padding: 8px;
     }
 
     button {
@@ -60,9 +59,8 @@
       cursor: pointer;
     }
 
-    button:disabled {
-      background-color: #aaa;
-      cursor: not-allowed;
+    button:hover {
+      opacity: 0.9;
     }
 
     .success {
@@ -75,13 +73,6 @@
       font-size: 14px;
     }
 
-    .error {
-      display: none;
-      margin-top: 10px;
-      color: #c00;
-      font-size: 13px;
-    }
-
     .note {
       margin-top: 15px;
       font-size: 12px;
@@ -91,61 +82,39 @@
 </head>
 <body>
 
-<div class="container">
+  <div class="container">
 
-  <img src="logo.png" alt="Logo aziendale" class="logo">
+    <!-- LOGO -->
+    <img src="logo.png" alt="Logo aziendale" class="logo">
 
-  <h1>Caricamento file CSV</h1>
-  <p>Inserisci la password e carica il file CSV.</p>
+    <h1>Caricamento file CSV</h1>
+    <p>Seleziona il file CSV da caricare.<br>
+       Il sistema lo elaborerà automaticamente.</p>
 
-  <!-- PASSWORD -->
-  <input type="password" id="password" placeholder="Password">
-
-  <div class="error" id="errorMessage">
-    ❌ Password errata
-  </div>
-
-  <form id="uploadForm"
-        action="action="https://5678-N8N/webhook-test/upload-csv"
+    <form id="uploadForm"
+          action="https://5678-N8N/webhook-test/upload-csv
 "
-        method="post"
-        enctype="multipart/form-data">
+          method="post"
+          enctype="multipart/form-data">
 
-    <input type="file" name="data" accept=".csv" required>
+      <input type="file" name="data" accept=".csv" required>
 
-    <button type="submit" id="uploadBtn" disabled>
-      📤 Carica CSV
-    </button>
-  </form>
+      <button type="submit">📤 Carica CSV</button>
+    </form>
 
-  <div class="success" id="successMessage">
-    ✅ Upload riuscito. Il file è stato ricevuto correttamente.
+    <div class="success" id="successMessage">
+      ✅ Upload riuscito. Il file è stato ricevuto correttamente.
+    </div>
+
+    <div class="note">
+      Sono accettati solo file CSV
+    </div>
+
   </div>
-
-  <div class="note">
-    Accesso riservato – solo file CSV
-  </div>
-
-</div>
 
 <script>
-  const CORRECT_PASSWORD = "FARMAVISTA_CSV";
-
-  const passwordInput = document.getElementById('password');
-  const uploadBtn = document.getElementById('uploadBtn');
-  const errorMessage = document.getElementById('errorMessage');
-  const successMessage = document.getElementById('successMessage');
   const form = document.getElementById('uploadForm');
-
-  passwordInput.addEventListener('input', function () {
-    if (passwordInput.value === CORRECT_PASSWORD) {
-      uploadBtn.disabled = false;
-      errorMessage.style.display = 'none';
-    } else {
-      uploadBtn.disabled = true;
-      errorMessage.style.display = 'block';
-    }
-  });
+  const successMessage = document.getElementById('successMessage');
 
   form.addEventListener('submit', function () {
     successMessage.style.display = 'block';
@@ -154,4 +123,3 @@
 
 </body>
 </html>
-
