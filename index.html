@@ -2,154 +2,231 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Caricamento CSV</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invio Dati Giornalieri - Farmavista</title>
 
   <style>
     :root {
       --primary-color: #005ea8;
       --secondary-color: #e6f0fa;
+      --success-color: #1e7e34;
+      --error-color: #c00;
     }
 
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: var(--secondary-color);
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
+      margin: 0;
     }
 
     .container {
       background: white;
-      width: 420px;
+      width: 100%;
+      max-width: 400px;
       padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
       text-align: center;
     }
 
     .logo {
-      max-width: 180px;
+      max-width: 160px;
       margin-bottom: 20px;
     }
 
     h1 {
-      font-size: 20px;
+      font-size: 22px;
       color: var(--primary-color);
+      margin-bottom: 5px;
     }
 
-    p {
-      font-size: 14px;
-      color: #555;
+    #displayNegozio {
+      display: block;
+      font-weight: bold;
+      background: #f0f7ff;
+      padding: 8px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      color: #333;
+      border: 1px dashed var(--primary-color);
     }
 
     input {
-      margin: 12px 0;
+      margin: 10px 0;
       width: 100%;
-      padding: 8px;
+      padding: 12px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
     }
 
     button {
       background-color: var(--primary-color);
       color: white;
       border: none;
-      padding: 12px;
+      padding: 14px;
       width: 100%;
       border-radius: 6px;
       font-size: 16px;
+      font-weight: bold;
       cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.3s;
+    }
+
+    button:hover:not(:disabled) {
+      background-color: #004a85;
     }
 
     button:disabled {
-      background-color: #aaa;
+      background-color: #ccc;
       cursor: not-allowed;
     }
 
-    .success {
+    .message {
       display: none;
       margin-top: 20px;
-      padding: 12px;
-      background: #e6ffea;
-      color: #1e7e34;
+      padding: 15px;
       border-radius: 6px;
       font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .success {
+      background: #e6ffea;
+      color: var(--success-color);
+      border: 1px solid #c3e6cb;
     }
 
     .error {
-      display: none;
-      margin-top: 10px;
-      color: #c00;
+      color: var(--error-color);
       font-size: 13px;
+      margin-top: 5px;
+      display: none;
     }
 
-    .note {
+    .loading {
+      display: none;
       margin-top: 15px;
-      font-size: 12px;
-      color: #777;
+      color: #666;
+      font-style: italic;
+    }
+
+    .footer-note {
+      margin-top: 20px;
+      font-size: 11px;
+      color: #999;
     }
   </style>
 </head>
 <body>
 
 <div class="container">
+  <img src="logo.png" alt="Farmavista" class="logo">
 
-  <img src="logo.png" alt="Logo aziendale" class="logo">
+  <h1>Caricamento Venduto</h1>
+  <span id="displayNegozio">Identificazione negozio in corso...</span>
 
-  <h1>Caricamento file CSV</h1>
-  <p>Inserisci la password e carica il file CSV.</p>
+  <input type="password" id="password" placeholder="Inserisci Password Aziendale">
+  <div class="error" id="passwordError">❌ Password errata</div>
 
-  <input type="text" name="utente" placeholder="Nome e Cognome" required>
-
-  <!-- PASSWORD -->
-  <input type="password" id="password" placeholder="Password">
-
-  <div class="error" id="errorMessage">
-    ❌ Password errata
-  </div>
-
-  <form id="uploadForm"
-        action="http://localhost:5678/webhook/upload-csv"
-        method="post"
-        enctype="multipart/form-data">
-
-    <input type="file" name="data" accept=".csv" required>
-
-    <button type="submit" id="uploadBtn" disabled>
-      📤 Carica CSV
-    </button>
+  <form id="uploadForm">
+    <input type="file" id="fileInput" accept=".csv,.xls,.xlsx" required>
+    <button type="submit" id="uploadBtn" disabled>📤 INVIA DATI</button>
   </form>
 
-  <div class="success" id="successMessage">
-    ✅ Upload riuscito. Il file è stato ricevuto correttamente.
+  <div id="loadingMessage" class="loading">⏳ Elaborazione e invio in corso...</div>
+  
+  <div id="successMessage" class="message success">
+    ✅ <strong>Invio riuscito!</strong><br>
+    Il file è stato ricevuto correttamente.<br>
+    La pagina si resetterà tra pochi secondi.
   </div>
 
-  <div class="note">
-    Accesso riservato – solo file CSV
-  </div>
-
+  <p class="footer-note">Area riservata ai punti vendita Farmavista</p>
 </div>
 
 <script>
+  // --- CONFIGURAZIONE ---
   const CORRECT_PASSWORD = "Farmavista26!";
+  // Inserisci qui il tuo URL Webhook di n8n (Production o Test)
+  const WEBHOOK_URL = "https://tuo-n8n.com/webhook/invio-csv"; 
+
+  // --- LOGICA RILEVAMENTO NEGOZIO ---
+  const urlParams = new URLSearchParams(window.location.search);
+  const nomeNegozio = urlParams.get('negozio') || 'Sconosciuto';
+  document.getElementById('displayNegozio').innerText = "Punto Vendita: " + nomeNegozio.toUpperCase();
 
   const passwordInput = document.getElementById('password');
   const uploadBtn = document.getElementById('uploadBtn');
-  const errorMessage = document.getElementById('errorMessage');
-  const successMessage = document.getElementById('successMessage');
-  const form = document.getElementById('uploadForm');
+  const passwordError = document.getElementById('passwordError');
+  const successMsg = document.getElementById('successMessage');
+  const loadingMsg = document.getElementById('loadingMessage');
+  const uploadForm = document.getElementById('uploadForm');
 
-  passwordInput.addEventListener('input', function () {
+  // Funzione Reset Pagina
+  function resetForm() {
+    uploadForm.reset();
+    passwordInput.value = "";
+    uploadBtn.disabled = true;
+    passwordError.style.display = 'none';
+    successMsg.style.display = 'none';
+    loadingMsg.style.display = 'none';
+  }
+
+  // Verifica Password in tempo reale
+  passwordInput.addEventListener('input', () => {
     if (passwordInput.value === CORRECT_PASSWORD) {
       uploadBtn.disabled = false;
-      errorMessage.style.display = 'none';
+      passwordError.style.display = 'none';
     } else {
       uploadBtn.disabled = true;
-      errorMessage.style.display = 'block';
+      if (passwordInput.value.length >= CORRECT_PASSWORD.length) {
+        passwordError.style.display = 'block';
+      }
     }
   });
 
-  form.addEventListener('submit', function () {
-    successMessage.style.display = 'block';
+  // Gestione Invio File
+  uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('fileInput');
+    if (!fileInput.files[0]) return;
+
+    uploadBtn.disabled = true;
+    loadingMsg.style.display = 'block';
+
+    // Costruzione URL con parametro negozio
+    const finalUrl = `${WEBHOOK_URL}?negozio=${encodeURIComponent(nomeNegozio)}`;
+
+    const formData = new FormData();
+    formData.append('data', fileInput.files[0]);
+
+    try {
+      const response = await fetch(finalUrl, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        loadingMsg.style.display = 'none';
+        successMsg.style.display = 'block';
+        
+        // Reset automatico dopo 4 secondi per permettere nuovi caricamenti
+        setTimeout(resetForm, 4000);
+      } else {
+        throw new Error("Errore Server");
+      }
+    } catch (error) {
+      alert("⚠️ Errore durante l'invio. Verifica la connessione o n8n e riprova.");
+      resetForm();
+    }
   });
 </script>
 
